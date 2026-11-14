@@ -4,7 +4,7 @@
 
 The platform wraps the original DUET v3 image detector with an image-review workflow. The report shows the model score, the selected route and expert votes. The workflow runs a second, controlled JPEG pass on scores close to the threshold or strong disagreement between experts, and flags those cases for human review. The initial verdict stays in the report alongside the second pass.
 
-The public site replays two reports generated with the original DUET model and v3 checkpoints. GitHub Pages hosts the interface and reports. For new uploads, run the Python service with access to the upstream code and model checkpoints.
+The public site replays three reports generated with the original DUET model and v3 checkpoints, including both the early exit and deep route. You can add a JPEG, PNG or WebP to preview the original and a browser-generated JPEG. The image stays in the browser during this preview. To score a new upload, run the Python service with access to the upstream code and model checkpoints.
 
 ## Run your own inspection
 
@@ -47,7 +47,7 @@ Visitors can submit images to the public API without an account. The API allows 
 3. If the score is within 0.15 of 0.5 or expert votes differ by 0.80 or more, rescore a JPEG version at quality 65 and report any verdict change.
 4. Export the score, route and review reasons as JSON.
 
-The follow-up thresholds are review heuristics. The reports are meant for inspection and the public examples are two versions of the same photograph. They do not establish model accuracy. Timing reflects the recorded CPU run or the configured live runtime.
+The follow-up thresholds are review heuristics. The public examples are three versions of the same photograph and illustrate the workflow. They do not establish model accuracy. Timing reflects the recorded CPU run or the configured live runtime.
 
 ## Reproduce the public samples
 
@@ -55,7 +55,7 @@ The follow-up thresholds are review heuristics. The reports are meant for inspec
 python -m duet_platform.export_samples
 ```
 
-Run the export command with the same model configuration as the server. The original sample is NASA’s photograph of [astronaut Eileen Collins](https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.astronaut), distributed by scikit-image. The second sample is resized to 240 × 240 and recompressed as JPEG at quality 28.
+Run the export command with the same model configuration as the server. The original sample is NASA’s photograph of [astronaut Eileen Collins](https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.astronaut), distributed by scikit-image. The second sample is resized to 240 × 240 and recompressed as JPEG at quality 28. The third is Gaussian blurred with a radius of 6 pixels.
 
 Install `httpx2` and run `python -m unittest discover -s tests` to test the API and review workflow using controlled detector outputs.
 

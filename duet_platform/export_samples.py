@@ -14,6 +14,7 @@ def main():
     samples = (
         ("NASA original", "astronaut.png"),
         ("Resized and compressed", "astronaut-recompressed.jpg"),
+        ("Gaussian blur", "astronaut-blurred.png"),
     )
     reports = []
     for title, filename in samples:

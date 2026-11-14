@@ -39,14 +39,15 @@
       <div class="controls" id="sample-controls" role="group" aria-label="Sample images">
         <button type="button" data-sample="0" aria-pressed="true">Original</button>
         <button type="button" data-sample="1" aria-pressed="false">Compressed</button>
+        <button type="button" data-sample="2" aria-pressed="false">Blurred</button>
       </div>
-      <form id="upload" hidden>
-        <label for="file">Inspect your own image</label>
-        <p class="hint">JPEG, PNG or WebP up to 8 MiB</p>
-        <input id="file" name="image" type="file" accept="image/jpeg,image/png,image/webp" required>
-        <button class="primary" id="submit" type="submit">Inspect</button>
+      <form id="upload">
+        <label for="file">Add your own image</label>
+        <p class="hint" id="upload-note">JPEG, PNG or WebP up to 8 MiB. In this demo, your file stays in your browser.</p>
+        <input id="file" name="image" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-note" required>
+        <button class="primary" id="submit" type="submit" hidden>Run DUET</button>
       </form>
-      <p id="host-note" class="hint host">The public demo shows recorded runs. <a href="https://github.com/HZHANG086/duet-agent-platform#run-your-own-inspection">Run locally to inspect an upload</a>.</p>
+      <p id="input-error" class="hint host" role="alert" hidden></p>
     </div>
 
     <div class="result">
@@ -55,35 +56,63 @@
         <button id="download" class="quiet" type="button" disabled>↓ JSON</button>
       </div>
       <p id="notice" role="status" aria-live="polite">Loading report…</p>
-      <div id="report" hidden>
-        <div class="scoreline">
-          <div>
-            <span class="metric-label">AI-generation score</span>
-            <strong id="score"></strong>
-          </div>
-          <div class="verdict">
-            <span class="metric-label">Model verdict</span>
-            <strong id="label"></strong>
-          </div>
-        </div>
-        <div class="scale" aria-hidden="true"><span id="score-marker"></span></div>
-        <div class="scale-label mono"><span>0</span><span>0.5 threshold</span><span>1</span></div>
+      <section id="local-report" hidden>
+        <h3>Image preparation preview</h3>
+        <p class="hint">Switch between the original and a browser-generated JPEG at quality 65. DUET’s model is offline for uploads in this demo. Select a built-in sample to see a real detection run.</p>
         <dl class="facts">
-          <div><dt>Routing</dt><dd id="route"></dd></div>
-          <div><dt>Depth</dt><dd id="depth"></dd></div>
-          <div><dt>Inference</dt><dd id="duration"></dd></div>
+          <div><dt>Format</dt><dd id="local-format"></dd></div>
+          <div><dt>Original size</dt><dd id="local-bytes"></dd></div>
+          <div><dt>JPEG size</dt><dd id="jpeg-bytes"></dd></div>
         </dl>
-        <div class="evidence">
-          <h3>Expert votes</h3>
-          <div id="votes"></div>
+        <div class="controls" role="group" aria-label="Your image variants">
+          <button id="local-original" type="button" aria-pressed="true">Original</button>
+          <button id="local-jpeg" type="button" aria-pressed="false">JPEG preview</button>
         </div>
-        <div class="review">
-          <h3 id="review-title">Review workflow</h3>
-          <p id="reasons"></p>
-          <p class="mono" id="compare" hidden></p>
+      </section>
+      <div id="report" hidden>
+        <div class="replay" id="replay" hidden>
+          <button type="button" id="replay-toggle">Replay workflow</button>
+          <button type="button" class="primary" id="replay-next" hidden>Next step</button>
+          <p class="hint" id="replay-step" aria-live="polite"></p>
+          <ol id="workflow-steps" hidden>
+            <li>Prepare image</li>
+            <li>Choose route</li>
+            <li>Score image</li>
+            <li>Review result</li>
+          </ol>
         </div>
+        <div id="model-output">
+          <dl class="facts model-route" id="route-facts">
+            <div><dt>Routing</dt><dd id="route"></dd></div>
+            <div><dt>Depth</dt><dd id="depth"></dd></div>
+            <div><dt>Inference</dt><dd id="duration"></dd></div>
+          </dl>
+          <div id="scoring">
+            <div class="scoreline">
+              <div>
+                <span class="metric-label">AI-generation score</span>
+                <strong id="score"></strong>
+              </div>
+              <div class="verdict">
+                <span class="metric-label">Model verdict</span>
+                <strong id="label"></strong>
+              </div>
+            </div>
+            <div class="scale" aria-hidden="true"><span id="score-marker"></span></div>
+            <div class="scale-label mono"><span>0</span><span>0.5 threshold</span><span>1</span></div>
+            <div class="evidence">
+              <h3>Expert votes</h3>
+              <div id="votes"></div>
+            </div>
+          </div>
+          <div class="review" id="review-panel">
+            <h3 id="review-title">Review workflow</h3>
+            <p id="reasons"></p>
+            <p class="mono" id="compare" hidden></p>
+          </div>
+        </div>
+        <p class="hint report-note">Scores are uncalibrated. Use them as a signal for review, alongside other evidence about the image’s origin.</p>
       </div>
-      <p class="hint report-note">Scores are uncalibrated. Use them as a signal for review, alongside other evidence about the image’s origin.</p>
     </div>
   </section>
 </main>

@@ -7,6 +7,14 @@ const notice = byId("notice");
 const preview = byId("preview");
 const upload = byId("upload");
 const submit = byId("submit");
+const fileInput = byId("file");
+const localReport = byId("local-report");
+const downloadButton = byId("download");
+const replayNext = byId("replay-next");
+const replayToggle = byId("replay-toggle");
+const workflowSteps = byId("workflow-steps");
+const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_PIXELS = 20_000_000;
 
 const reasonText = {
   near_decision_threshold: "The score is near the decision threshold.",
@@ -18,6 +26,10 @@ let catalog;
 let activeReport;
 let objectUrl;
 let busy = false;
+let live = false;
+let replayStep = null;
+let imageRevision = 0;
+let localImage;
 const backend = new URL(publicBackend || "./", window.location.href);
 const endpoint = (path) => new URL(path, backend);
 
@@ -34,8 +46,42 @@ function setNotice(message, error = false) {
   notice.toggleAttribute("data-error", error);
 }
 
-function renderReport(report) {
+function renderReplay() {
+  const replaying = replayStep !== null;
+  const current = replayStep ?? 3;
+  const primary = activeReport.primary;
+  byId("route-facts").hidden = current < 1;
+  byId("scoring").hidden = current < 2;
+  byId("review-panel").hidden = current < 3;
+  byId("replay-step").hidden = !replaying;
+  workflowSteps.hidden = !replaying;
+  replayNext.hidden = !replaying || current === 3;
+  replayToggle.textContent = replaying ? "Full report" : "Replay workflow";
+  downloadButton.disabled = current < 3;
+  const route = primary.route === "shallow"
+    ? "The gate selected an early exit at block 27."
+    : "The gate selected the deep route and continued to block 37.";
+  const final = activeReport.recompression_check
+    ? "The review rule triggered a second pass on a recompressed JPEG."
+    : "The review rule completed this sample after one pass.";
+  byId("replay-step").textContent = [
+    "DUET decoded the image and prepared a 504 × 504 model input.",
+    route,
+    "Three expert heads voted. DUET combined their logits into the displayed score.",
+    final,
+  ][current];
+  [...workflowSteps.children].forEach((item, index) => {
+    item.classList.toggle("done", index < current);
+    if (index === current) item.setAttribute("aria-current", "step");
+    else item.removeAttribute("aria-current");
+  });
+}
+
+function renderReport(report, recorded = false) {
   activeReport = report;
+  replayStep = null;
+  localReport.hidden = true;
+  byId("replay").hidden = !recorded;
   const primary = report.primary;
   const verdict = primary.label === "synthetic" ? "AI-generated" : "Real";
   byId("dimensions").textContent = `${report.width} × ${report.height} px`;
@@ -73,26 +119,41 @@ function renderReport(report) {
     const secondVerdict = check.label === "synthetic" ? "AI-generated" : "Real";
     byId("compare").textContent = `JPEG check  ${check.score.toFixed(3)} · ${secondVerdict} · L${check.depth}`;
   }
-  byId("download").disabled = false;
+  renderReplay();
   renderedReport.hidden = false;
   setNotice("");
 }
 
 function selectSample(index) {
   const sample = catalog.samples[index];
-  setPreview(sample.url, `${sample.title} of NASA astronaut Eileen Collins`);
+  imageRevision += 1;
+  localImage = undefined;
+  fileInput.value = "";
+  submit.disabled = true;
+  showInputError("");
+  setPreview(sample.url, sample.title);
   byId("sample-name").textContent = sample.title;
   byId("mode").textContent = "Recorded model run";
   sampleButtons.forEach((button) => button.setAttribute("aria-pressed", String(Number(button.dataset.sample) === index)));
-  renderReport(sample.report);
+  renderReport(sample.report, true);
 }
+
+replayToggle.addEventListener("click", () => {
+  replayStep = replayStep === null ? 0 : null;
+  renderReplay();
+});
+replayNext.addEventListener("click", () => {
+  replayStep += 1;
+  renderReplay();
+  if (replayNext.hidden) replayToggle.focus();
+});
 
 sampleButtons.forEach((button) => {
   button.disabled = true;
   button.addEventListener("click", () => selectSample(Number(button.dataset.sample)));
 });
 
-byId("download").addEventListener("click", () => {
+downloadButton.addEventListener("click", () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(activeReport, null, 2)], {type: "application/json"}));
   const download = document.createElement("a");
   download.href = url;
@@ -101,24 +162,101 @@ byId("download").addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+function showInputError(message) {
+  const error = byId("input-error");
+  error.textContent = message;
+  error.hidden = !message;
+}
+
+function displayBytes(bytes) {
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 ** 2).toFixed(2)} MiB`
+    : `${(bytes / 1024).toFixed(1)} KiB`;
+}
+
+function showLocalVariant(jpeg) {
+  if (!localImage) return;
+  setPreview(jpeg ? localImage.jpeg : localImage.file, jpeg ? "JPEG preview" : "Your original image");
+  byId("local-original").setAttribute("aria-pressed", String(!jpeg));
+  byId("local-jpeg").setAttribute("aria-pressed", String(jpeg));
+}
+
+byId("local-original").addEventListener("click", () => showLocalVariant(false));
+byId("local-jpeg").addEventListener("click", () => showLocalVariant(true));
+
+fileInput.addEventListener("change", async () => {
+  const revision = ++imageRevision;
+  const file = fileInput.files[0];
+  if (!file || busy) return;
+  showInputError("");
+  submit.disabled = true;
+  try {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Choose a JPEG, PNG or WebP image.");
+    }
+    if (file.size > MAX_BYTES) throw new Error("The image exceeds 8 MiB.");
+    const bitmap = await createImageBitmap(file).catch(() => {
+      throw new Error("The image could not be decoded.");
+    });
+    const {width, height} = bitmap;
+    const canvas = document.createElement("canvas");
+    try {
+      if (width * height > MAX_PIXELS) throw new Error("The image exceeds 20 megapixels.");
+      if (revision !== imageRevision) return;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(bitmap, 0, 0);
+    } finally {
+      bitmap.close();
+    }
+    const jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.65));
+    if (revision !== imageRevision) return;
+    if (!jpeg) throw new Error("The JPEG preview could not be created.");
+    localImage = {file, jpeg};
+    byId("mode").textContent = "Browser preview";
+    byId("sample-name").textContent = file.name;
+    byId("dimensions").textContent = `${width} × ${height} px`;
+    byId("local-format").textContent = file.type.split("/")[1].toUpperCase();
+    byId("local-bytes").textContent = displayBytes(file.size);
+    byId("jpeg-bytes").textContent = displayBytes(jpeg.size);
+    sampleButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+    activeReport = undefined;
+    downloadButton.disabled = true;
+    renderedReport.hidden = true;
+    localReport.hidden = false;
+    setNotice("");
+    showLocalVariant(false);
+    submit.disabled = false;
+  } catch (error) {
+    if (revision !== imageRevision) return;
+    fileInput.value = "";
+    localImage = undefined;
+    showInputError(error.message);
+    if (renderedReport.hidden && localReport.hidden) {
+      setNotice("Choose a built-in sample or add a supported image.");
+    }
+  }
+});
+
 upload.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const file = byId("file").files[0];
-  if (!file || busy) return;
-  if (file.size > 8 * 1024 * 1024) {
-    setNotice("The image exceeds 8 MiB.", true);
-    return;
-  }
+  const file = localImage?.file;
+  if (!live || !file || busy) return;
   busy = true;
   submit.disabled = true;
-  byId("download").disabled = true;
+  const bodyData = new FormData();
+  bodyData.append("image", file, file.name);
+  fileInput.disabled = true;
+  downloadButton.disabled = true;
   sampleButtons.forEach((button) => { button.disabled = true; });
   renderedReport.hidden = true;
   setNotice("Running DUET inspection…");
   try {
     const response = await fetch(endpoint("api/inspect"), {
       method: "POST",
-      body: new FormData(upload),
+      body: bodyData,
       signal: AbortSignal.timeout(140000),
     });
     const body = await response.json().catch(() => null);
@@ -140,6 +278,7 @@ upload.addEventListener("submit", async (event) => {
       : error.message;
     setNotice(message || "Could not reach the DUET service.", true);
   } finally {
+    fileInput.disabled = false;
     submit.disabled = false;
     sampleButtons.forEach((button) => { button.disabled = !catalog; });
     busy = false;
@@ -151,7 +290,7 @@ async function loadSamples() {
   if (!response.ok) throw new Error("Sample reports are unavailable.");
   catalog = await response.json();
   sampleButtons.forEach((button) => { button.disabled = false; });
-  selectSample(0);
+  if (imageRevision === 0) selectSample(0);
 }
 
 async function detectServer() {
@@ -159,8 +298,12 @@ async function detectServer() {
     const response = await fetch(endpoint("api/health"), {signal: AbortSignal.timeout(3000)});
     if (!response.ok || (await response.json()).status !== "ready") return;
   }
-  upload.hidden = false;
-  byId("host-note").hidden = true;
+  live = true;
+  submit.hidden = false;
+  submit.disabled = !localImage;
+  byId("upload-note").textContent = "JPEG, PNG or WebP up to 8 MiB. The image is sent to DUET only when you select Run DUET.";
+  byId("local-report").querySelector(".hint").textContent =
+    "Switch between the original and a browser-generated JPEG preview, or select Run DUET to run the model on the original.";
 }
 
 try {

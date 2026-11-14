@@ -25,7 +25,7 @@
           ],
           "gate_logit": -2.2306196689605713,
           "depth": 27,
-          "inference_ms": 7409.1
+          "inference_ms": 7458.1
         },
         "recompression_check": null,
         "status": "complete",
@@ -56,7 +56,7 @@
           ],
           "gate_logit": -0.3029678463935852,
           "depth": 27,
-          "inference_ms": 2451.1
+          "inference_ms": 2795.7
         },
         "recompression_check": {
           "score": 0.4081979113858763,
@@ -74,12 +74,62 @@
           ],
           "gate_logit": -2.24499249458313,
           "depth": 27,
-          "inference_ms": 2392.8
+          "inference_ms": 2525.4
         },
         "status": "review",
         "reasons": [
           "near_decision_threshold",
           "expert_disagreement"
+        ]
+      }
+    },
+    {
+      "title": "Gaussian blur",
+      "url": "samples/astronaut-blurred.png",
+      "report": {
+        "filename": "astronaut-blurred.png",
+        "width": 512,
+        "height": 512,
+        "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "primary": {
+          "score": 0.4676544165608334,
+          "label": "real",
+          "route": "deep",
+          "layers": [
+            26,
+            33,
+            37
+          ],
+          "votes": [
+            0.0003899776901274295,
+            2.3303354812044862e-11,
+            0.17619551497065664
+          ],
+          "gate_logit": 21.222814559936523,
+          "depth": 37,
+          "inference_ms": 6173.9
+        },
+        "recompression_check": {
+          "score": 0.4673359416372029,
+          "label": "real",
+          "route": "deep",
+          "layers": [
+            26,
+            33,
+            37
+          ],
+          "votes": [
+            0.24149225022118936,
+            1.0652627515486596e-14,
+            0.34681473919697925
+          ],
+          "gate_logit": 24.261568069458008,
+          "depth": 37,
+          "inference_ms": 8184.3
+        },
+        "status": "review",
+        "reasons": [
+          "near_decision_threshold"
         ]
       }
     }
