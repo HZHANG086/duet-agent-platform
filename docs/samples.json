@@ -1,0 +1,87 @@
+{
+  "upstream_commit": "829ca4cb4e83d35d8be4d2ddafc5359524b4649a",
+  "samples": [
+    {
+      "title": "NASA original",
+      "url": "samples/astronaut.png",
+      "report": {
+        "filename": "astronaut.png",
+        "width": 512,
+        "height": 512,
+        "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "primary": {
+          "score": 0.03593530741920276,
+          "label": "real",
+          "route": "shallow",
+          "layers": [
+            14,
+            21,
+            27
+          ],
+          "votes": [
+            2.6708803571680396e-12,
+            8.75651076269652e-27,
+            1.046670703038261e-11
+          ],
+          "gate_logit": -2.2306196689605713,
+          "depth": 27,
+          "inference_ms": 7409.1
+        },
+        "recompression_check": null,
+        "status": "complete",
+        "reasons": []
+      }
+    },
+    {
+      "title": "Resized and compressed",
+      "url": "samples/astronaut-recompressed.jpg",
+      "report": {
+        "filename": "astronaut-recompressed.jpg",
+        "width": 240,
+        "height": 240,
+        "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "primary": {
+          "score": 0.4121393932831678,
+          "label": "real",
+          "route": "shallow",
+          "layers": [
+            14,
+            21,
+            27
+          ],
+          "votes": [
+            8.065787497265609e-11,
+            9.472433764145067e-16,
+            0.9999703520055084
+          ],
+          "gate_logit": -0.3029678463935852,
+          "depth": 27,
+          "inference_ms": 2451.1
+        },
+        "recompression_check": {
+          "score": 0.4081979113858763,
+          "label": "real",
+          "route": "shallow",
+          "layers": [
+            14,
+            21,
+            27
+          ],
+          "votes": [
+            8.772291412246925e-12,
+            1.8977543809051947e-14,
+            0.9998283245423523
+          ],
+          "gate_logit": -2.24499249458313,
+          "depth": 27,
+          "inference_ms": 2392.8
+        },
+        "status": "review",
+        "reasons": [
+          "near_decision_threshold",
+          "expert_disagreement"
+        ]
+      }
+    }
+  ]
+}

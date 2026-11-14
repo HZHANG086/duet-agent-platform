@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inspect DUET image detection scores, expert votes, and recompression checks.">
+  <title>DUET Agent Platform</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="masthead">
+  <div class="shell masthead-content">
+    <a class="brand" href="./"><span class="mark" aria-hidden="true">◩</span> DUET <span class="brand-sub">Agent Platform</span></a>
+    <nav aria-label="Project">
+      <a href="https://github.com/HZHANG086/duet-agent-platform#run-your-own-inspection">Setup</a>
+      <a href="https://github.com/HZHANG086/duet-agent-platform">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  <section class="intro">
+    <h1>Image inspection</h1>
+    <p>Explore how DUET scores an image, which layers it used, and when a second pass flags it for review.</p>
+  </section>
+  <section class="workspace" aria-label="Inspection workspace">
+    <div class="source">
+      <div class="section-head">
+        <h2>Image</h2>
+        <span id="mode" class="mode">Recorded model run</span>
+      </div>
+      <figure class="viewer">
+        <img id="preview" src="samples/astronaut.png" alt="NASA astronaut Eileen Collins">
+      </figure>
+      <div class="source-caption">
+        <span id="sample-name">NASA original</span>
+        <span class="mono" id="dimensions">512 × 512 px</span>
+      </div>
+      <div class="controls" id="sample-controls" role="group" aria-label="Sample images">
+        <button type="button" data-sample="0" aria-pressed="true">Original</button>
+        <button type="button" data-sample="1" aria-pressed="false">Compressed</button>
+      </div>
+      <form id="upload" hidden>
+        <label for="file">Inspect your own image</label>
+        <p class="hint">JPEG, PNG or WebP up to 8 MiB</p>
+        <input id="file" name="image" type="file" accept="image/jpeg,image/png,image/webp" required>
+        <button class="primary" id="submit" type="submit">Inspect</button>
+      </form>
+      <p id="host-note" class="hint host">The public demo shows recorded runs. <a href="https://github.com/HZHANG086/duet-agent-platform#run-your-own-inspection">Run locally to inspect an upload</a>.</p>
+    </div>
+
+    <div class="result">
+      <div class="section-head">
+        <h2>Inspection report</h2>
+        <button id="download" class="quiet" type="button" disabled>↓ JSON</button>
+      </div>
+      <p id="notice" role="status" aria-live="polite">Loading report…</p>
+      <div id="report" hidden>
+        <div class="scoreline">
+          <div>
+            <span class="metric-label">AI-generation score</span>
+            <strong id="score"></strong>
+          </div>
+          <div class="verdict">
+            <span class="metric-label">Model verdict</span>
+            <strong id="label"></strong>
+          </div>
+        </div>
+        <div class="scale" aria-hidden="true"><span id="score-marker"></span></div>
+        <div class="scale-label mono"><span>0</span><span>0.5 threshold</span><span>1</span></div>
+        <dl class="facts">
+          <div><dt>Routing</dt><dd id="route"></dd></div>
+          <div><dt>Depth</dt><dd id="depth"></dd></div>
+          <div><dt>Inference</dt><dd id="duration"></dd></div>
+        </dl>
+        <div class="evidence">
+          <h3>Expert votes</h3>
+          <div id="votes"></div>
+        </div>
+        <div class="review">
+          <h3 id="review-title">Review workflow</h3>
+          <p id="reasons"></p>
+          <p class="mono" id="compare" hidden></p>
+        </div>
+      </div>
+      <p class="hint report-note">Scores are uncalibrated. Use them as a signal for review, alongside other evidence about the image’s origin.</p>
+    </div>
+  </section>
+</main>
+<footer class="shell"><span>DUET v3 · DINOv2 ViT-g/14</span><a href="https://devpost.com/software/freedepth">Original team project ↗</a></footer>
+</body>
+</html>
