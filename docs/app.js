@@ -20,6 +20,14 @@ const reasonText = {
   near_decision_threshold: "The score is near the decision threshold.",
   expert_disagreement: "The experts strongly disagree.",
   verdict_changed_after_recompression: "The verdict changed after recompression.",
+  recheck_failed: "The JPEG recheck failed. The initial result is retained for human review.",
+};
+const toolLabels = {
+  decode_image: "Decode image",
+  duet_primary: "Run initial DUET detection",
+  evaluate_review_policy: "Decide whether to recheck",
+  duet_jpeg_recheck: "Recompress and run DUET again",
+  finalize_review: "Set review outcome",
 };
 
 const catalog = typeof duetSamples !== "undefined" ? duetSamples : null;
@@ -48,41 +56,45 @@ function setNotice(message, error = false) {
 }
 
 function renderReplay() {
+  const trace = activeReport.trace ?? [];
   const replaying = replayStep !== null;
-  const current = replayStep ?? 3;
-  const primary = activeReport.primary;
-  byId("route-facts").hidden = current < 1;
-  byId("scoring").hidden = current < 2;
-  byId("review-panel").hidden = current < 3;
-  byId("replay-step").hidden = !replaying;
+  const current = replayStep ?? trace.length - 1;
+  const visible = trace.slice(0, current + 1);
+  const final = !replaying || current === trace.length - 1;
+  const scored = !replaying || visible.some((step) => step.tool === "duet_primary");
+  byId("route-facts").hidden = !scored;
+  byId("scoring").hidden = !scored;
+  byId("review-panel").hidden = !final;
   workflowSteps.hidden = !replaying;
-  replayNext.hidden = !replaying || current === 3;
+  replayNext.hidden = !replaying || final;
   replayToggle.textContent = replaying ? "Full report" : "Replay workflow";
-  downloadButton.disabled = current < 3;
-  const route = primary.route === "shallow"
-    ? "The gate selected an early exit at block 27."
-    : "The gate selected the deep route and continued to block 37.";
-  const final = activeReport.recompression_check
-    ? "The review rule triggered a second pass on a recompressed JPEG."
-    : "The review rule completed this sample after one pass.";
-  byId("replay-step").textContent = [
-    "DUET decoded the image and prepared a 504 × 504 model input.",
-    route,
-    "Three expert heads voted. DUET combined their logits into the displayed score.",
-    final,
-  ][current];
-  [...workflowSteps.children].forEach((item, index) => {
-    item.classList.toggle("done", index < current);
+  downloadButton.disabled = !final;
+  byId("trace-position").textContent = replaying ? `Step ${current + 1} of ${trace.length}` : "";
+  workflowSteps.replaceChildren(...visible.map((entry, index) => {
+    const item = document.createElement("li");
     if (index === current) item.setAttribute("aria-current", "step");
-    else item.removeAttribute("aria-current");
-  });
+    item.toggleAttribute("data-failed", entry.status === "failed");
+    const details = document.createElement("details");
+    details.open = index === current;
+    const summary = document.createElement("summary");
+    summary.textContent = `${toolLabels[entry.tool] ?? entry.tool} · ${entry.status} · ${entry.elapsed_ms} ms`;
+    const payload = document.createElement("pre");
+    payload.textContent = JSON.stringify({input: entry.input, output: entry.output}, null, 2);
+    details.append(summary, payload);
+    item.append(details);
+    return item;
+  }));
 }
 
-function renderReport(report, recorded = false) {
+function renderReport(report) {
   activeReport = report;
   replayStep = null;
   localReport.hidden = true;
-  byId("replay").hidden = !recorded;
+  const hasTrace = Array.isArray(report.trace) && report.trace.length > 0;
+  byId("replay").hidden = !hasTrace;
+  const runDetails = byId("run-details");
+  runDetails.hidden = !hasTrace;
+  if (hasTrace) runDetails.textContent = `${report.model} · Run ${report.run_id.slice(0, 8)}`;
   const primary = report.primary;
   const verdict = primary.label === "synthetic" ? "AI-generated" : "Real";
   byId("dimensions").textContent = `${report.width} × ${report.height} px`;
@@ -136,7 +148,7 @@ function selectSample(index) {
   byId("sample-name").textContent = sample.title;
   byId("mode").textContent = "Recorded model run";
   sampleButtons.forEach((button) => button.setAttribute("aria-pressed", String(Number(button.dataset.sample) === index)));
-  renderReport(sample.report, true);
+  renderReport(sample.report);
 }
 
 replayToggle.addEventListener("click", () => {

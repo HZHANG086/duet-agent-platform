@@ -2,6 +2,7 @@
 
 import os
 import sys
+from hashlib import file_digest
 from pathlib import Path
 from time import perf_counter
 
@@ -30,6 +31,15 @@ class Detector:
         device = os.environ.get("DUET_DEVICE") or upstream.default_device()
         backbone = os.environ.get("DUET_BACKBONE", "facebook/dinov2-giant")
         self.network = upstream.DUET(shallow, deep, gate, backbone, device=device)
+        self.runtime = {
+            "device": device,
+            "model_input_size": self.network.crop,
+            "logit_threshold": THRESHOLD,
+            "checkpoint_sha256": {},
+        }
+        for role, path in (("shallow", shallow / "stage1.pt"), ("deep", deep / "stage1.pt"), ("gate", gate)):
+            with path.open("rb") as stream:
+                self.runtime["checkpoint_sha256"][role] = file_digest(stream, "sha256").hexdigest()
 
     def score(self, image, filename):
         upstream = self.upstream

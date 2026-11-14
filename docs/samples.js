@@ -10,6 +10,18 @@ const duetSamples = {
         "width": 512,
         "height": 512,
         "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "run_id": "55b20e2d-eb3c-4d59-a129-0e8ccb69a4df",
+        "trace_version": 1,
+        "model_runtime": {
+          "device": "cpu",
+          "model_input_size": 504,
+          "logit_threshold": -8.7,
+          "checkpoint_sha256": {
+            "shallow": "d6d679919d2575cfd89991228b3a6f8319432c65c1bb12ac0f4355c518fde144",
+            "deep": "cb6c4f9b02f26274971b12d4a0ad3116ddc47325833f46a930dc5c8830135db3",
+            "gate": "5276155f32927e828911f4d6124f95a17ca8f6beb671494a254190be467b300f"
+          }
+        },
         "primary": {
           "score": 0.03593530741920276,
           "label": "real",
@@ -26,11 +38,81 @@ const duetSamples = {
           ],
           "gate_logit": -2.2306196689605713,
           "depth": 27,
-          "inference_ms": 7458.1
+          "inference_ms": 7805.5
         },
         "recompression_check": null,
         "status": "complete",
-        "reasons": []
+        "reasons": [],
+        "trace": [
+          {
+            "tool": "decode_image",
+            "status": "succeeded",
+            "elapsed_ms": 17.16,
+            "input": {
+              "bytes": 791555
+            },
+            "output": {
+              "width": 512,
+              "height": 512,
+              "color_mode": "RGB"
+            }
+          },
+          {
+            "tool": "duet_primary",
+            "status": "succeeded",
+            "elapsed_ms": 7805.5,
+            "input": {
+              "image": "original"
+            },
+            "output": {
+              "score": 0.03593530741920276,
+              "label": "real",
+              "route": "shallow",
+              "layers": [
+                14,
+                21,
+                27
+              ],
+              "votes": [
+                2.6708803571680396e-12,
+                8.75651076269652e-27,
+                1.046670703038261e-11
+              ],
+              "gate_logit": -2.2306196689605713,
+              "depth": 27,
+              "inference_ms": 7805.5
+            }
+          },
+          {
+            "tool": "evaluate_review_policy",
+            "status": "succeeded",
+            "elapsed_ms": 0.02,
+            "input": {
+              "score_margin": 0.46406469258079724,
+              "expert_vote_spread": 1.0466707030382602e-11,
+              "maximum_borderline_margin": 0.15,
+              "minimum_disagreement": 0.8,
+              "maximum_rechecks": 1
+            },
+            "output": {
+              "next_action": "complete",
+              "reasons": []
+            }
+          },
+          {
+            "tool": "finalize_review",
+            "status": "succeeded",
+            "elapsed_ms": 0.0,
+            "input": {
+              "primary_label": "real",
+              "recheck_label": null
+            },
+            "output": {
+              "status": "complete",
+              "reasons": []
+            }
+          }
+        ]
       }
     },
     {
@@ -41,6 +123,18 @@ const duetSamples = {
         "width": 240,
         "height": 240,
         "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "run_id": "f04e0adf-7049-440a-9aa3-6c8c662953af",
+        "trace_version": 1,
+        "model_runtime": {
+          "device": "cpu",
+          "model_input_size": 504,
+          "logit_threshold": -8.7,
+          "checkpoint_sha256": {
+            "shallow": "d6d679919d2575cfd89991228b3a6f8319432c65c1bb12ac0f4355c518fde144",
+            "deep": "cb6c4f9b02f26274971b12d4a0ad3116ddc47325833f46a930dc5c8830135db3",
+            "gate": "5276155f32927e828911f4d6124f95a17ca8f6beb671494a254190be467b300f"
+          }
+        },
         "primary": {
           "score": 0.4121393932831678,
           "label": "real",
@@ -57,7 +151,7 @@ const duetSamples = {
           ],
           "gate_logit": -0.3029678463935852,
           "depth": 27,
-          "inference_ms": 2795.7
+          "inference_ms": 2523.9
         },
         "recompression_check": {
           "score": 0.4081979113858763,
@@ -75,12 +169,115 @@ const duetSamples = {
           ],
           "gate_logit": -2.24499249458313,
           "depth": 27,
-          "inference_ms": 2525.4
+          "inference_ms": 2373.1
         },
         "status": "review",
         "reasons": [
           "near_decision_threshold",
           "expert_disagreement"
+        ],
+        "trace": [
+          {
+            "tool": "decode_image",
+            "status": "succeeded",
+            "elapsed_ms": 1.71,
+            "input": {
+              "bytes": 6859
+            },
+            "output": {
+              "width": 240,
+              "height": 240,
+              "color_mode": "RGB"
+            }
+          },
+          {
+            "tool": "duet_primary",
+            "status": "succeeded",
+            "elapsed_ms": 2525.98,
+            "input": {
+              "image": "original"
+            },
+            "output": {
+              "score": 0.4121393932831678,
+              "label": "real",
+              "route": "shallow",
+              "layers": [
+                14,
+                21,
+                27
+              ],
+              "votes": [
+                8.065787497265609e-11,
+                9.472433764145067e-16,
+                0.9999703520055084
+              ],
+              "gate_logit": -0.3029678463935852,
+              "depth": 27,
+              "inference_ms": 2523.9
+            }
+          },
+          {
+            "tool": "evaluate_review_policy",
+            "status": "succeeded",
+            "elapsed_ms": 0.0,
+            "input": {
+              "score_margin": 0.08786060671683221,
+              "expert_vote_spread": 0.9999703520055074,
+              "maximum_borderline_margin": 0.15,
+              "minimum_disagreement": 0.8,
+              "maximum_rechecks": 1
+            },
+            "output": {
+              "next_action": "recheck_jpeg",
+              "reasons": [
+                "near_decision_threshold",
+                "expert_disagreement"
+              ]
+            }
+          },
+          {
+            "tool": "duet_jpeg_recheck",
+            "status": "succeeded",
+            "elapsed_ms": 2376.55,
+            "input": {
+              "image": "original",
+              "jpeg_quality": 65
+            },
+            "output": {
+              "score": 0.4081979113858763,
+              "label": "real",
+              "route": "shallow",
+              "layers": [
+                14,
+                21,
+                27
+              ],
+              "votes": [
+                8.772291412246925e-12,
+                1.8977543809051947e-14,
+                0.9998283245423523
+              ],
+              "gate_logit": -2.24499249458313,
+              "depth": 27,
+              "inference_ms": 2373.1
+            }
+          },
+          {
+            "tool": "finalize_review",
+            "status": "succeeded",
+            "elapsed_ms": 0.0,
+            "input": {
+              "primary_label": "real",
+              "recheck_label": "real"
+            },
+            "output": {
+              "status": "review",
+              "reasons": [
+                "near_decision_threshold",
+                "expert_disagreement"
+              ]
+            }
+          }
         ]
       }
     },
@@ -92,6 +289,18 @@ const duetSamples = {
         "width": 512,
         "height": 512,
         "model": "DUET v3 \u00b7 DINOv2 ViT-g/14",
+        "run_id": "fff34136-173d-492c-97c1-9205750679f9",
+        "trace_version": 1,
+        "model_runtime": {
+          "device": "cpu",
+          "model_input_size": 504,
+          "logit_threshold": -8.7,
+          "checkpoint_sha256": {
+            "shallow": "d6d679919d2575cfd89991228b3a6f8319432c65c1bb12ac0f4355c518fde144",
+            "deep": "cb6c4f9b02f26274971b12d4a0ad3116ddc47325833f46a930dc5c8830135db3",
+            "gate": "5276155f32927e828911f4d6124f95a17ca8f6beb671494a254190be467b300f"
+          }
+        },
         "primary": {
           "score": 0.4676544165608334,
           "label": "real",
@@ -108,7 +317,7 @@ const duetSamples = {
           ],
           "gate_logit": 21.222814559936523,
           "depth": 37,
-          "inference_ms": 6173.9
+          "inference_ms": 5931.9
         },
         "recompression_check": {
           "score": 0.4673359416372029,
@@ -126,11 +335,112 @@ const duetSamples = {
           ],
           "gate_logit": 24.261568069458008,
           "depth": 37,
-          "inference_ms": 8184.3
+          "inference_ms": 6526.6
         },
         "status": "review",
         "reasons": [
           "near_decision_threshold"
+        ],
+        "trace": [
+          {
+            "tool": "decode_image",
+            "status": "succeeded",
+            "elapsed_ms": 2.59,
+            "input": {
+              "bytes": 194552
+            },
+            "output": {
+              "width": 512,
+              "height": 512,
+              "color_mode": "RGB"
+            }
+          },
+          {
+            "tool": "duet_primary",
+            "status": "succeeded",
+            "elapsed_ms": 5931.98,
+            "input": {
+              "image": "original"
+            },
+            "output": {
+              "score": 0.4676544165608334,
+              "label": "real",
+              "route": "deep",
+              "layers": [
+                26,
+                33,
+                37
+              ],
+              "votes": [
+                0.0003899776901274295,
+                2.3303354812044862e-11,
+                0.17619551497065664
+              ],
+              "gate_logit": 21.222814559936523,
+              "depth": 37,
+              "inference_ms": 5931.9
+            }
+          },
+          {
+            "tool": "evaluate_review_policy",
+            "status": "succeeded",
+            "elapsed_ms": 0.01,
+            "input": {
+              "score_margin": 0.0323455834391666,
+              "expert_vote_spread": 0.17619551494735328,
+              "maximum_borderline_margin": 0.15,
+              "minimum_disagreement": 0.8,
+              "maximum_rechecks": 1
+            },
+            "output": {
+              "next_action": "recheck_jpeg",
+              "reasons": [
+                "near_decision_threshold"
+              ]
+            }
+          },
+          {
+            "tool": "duet_jpeg_recheck",
+            "status": "succeeded",
+            "elapsed_ms": 6528.99,
+            "input": {
+              "image": "original",
+              "jpeg_quality": 65
+            },
+            "output": {
+              "score": 0.4673359416372029,
+              "label": "real",
+              "route": "deep",
+              "layers": [
+                26,
+                33,
+                37
+              ],
+              "votes": [
+                0.24149225022118936,
+                1.0652627515486596e-14,
+                0.34681473919697925
+              ],
+              "gate_logit": 24.261568069458008,
+              "depth": 37,
+              "inference_ms": 6526.6
+            }
+          },
+          {
+            "tool": "finalize_review",
+            "status": "succeeded",
+            "elapsed_ms": 0.0,
+            "input": {
+              "primary_label": "real",
+              "recheck_label": "real"
+            },
+            "output": {
+              "status": "review",
+              "reasons": [
+                "near_decision_threshold"
+              ]
+            }
+          }
         ]
       }
     }

@@ -21,7 +21,10 @@ class ControlledDetector:
         self.scores = iter(scores)
 
     def score(self, image, filename):
-        score, votes = next(self.scores)
+        result = next(self.scores)
+        if isinstance(result, Exception):
+            raise result
+        score, votes = result
         return {"score": score, "label": "synthetic" if score > 0.5 else "real", "votes": votes}
 
 
@@ -34,6 +37,10 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "complete")
         self.assertIsNone(response.json()["recompression_check"])
+        self.assertEqual([step["tool"] for step in response.json()["trace"]], [
+            "decode_image", "duet_primary", "evaluate_review_policy", "finalize_review"
+        ])
+        self.assertEqual(response.json()["trace"][2]["output"]["next_action"], "complete")
 
     def test_disagreement_triggers_check_and_flags_changed_verdict(self):
         detector = ControlledDetector([(0.4, [0, 0.9, 0]), (0.6, [0.6, 0.7, 0.5])])
@@ -47,6 +54,25 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(report["reasons"], [
             "near_decision_threshold", "expert_disagreement", "verdict_changed_after_recompression"
         ])
+        policy, recheck, outcome = report["trace"][2:]
+        self.assertEqual(policy["output"]["next_action"], "recheck_jpeg")
+        self.assertEqual(policy["output"]["reasons"], ["near_decision_threshold", "expert_disagreement"])
+        self.assertEqual(recheck["input"]["jpeg_quality"], 65)
+        self.assertEqual(recheck["output"], report["recompression_check"])
+        self.assertEqual(outcome["output"]["reasons"], report["reasons"])
+
+    def test_recheck_failure_preserves_primary_and_requests_review(self):
+        detector = ControlledDetector([(0.49, [0.4, 0.5, 0.6]), RuntimeError("private details")])
+        with TestClient(create_app(lambda: detector)) as client:
+            response = client.post("/api/inspect", files={"image": ("sample.png", sample(), "image/png")})
+        self.assertEqual(response.status_code, 200)
+        report = response.json()
+        self.assertEqual(report["primary"]["score"], 0.49)
+        self.assertEqual(report["status"], "review")
+        self.assertIsNone(report["recompression_check"])
+        self.assertEqual(report["trace"][3]["status"], "failed")
+        self.assertIn("recheck_failed", report["reasons"])
+        self.assertNotIn("private details", response.text)
 
     def test_reject_invalid_and_oversized_uploads(self):
         with TestClient(create_app(lambda: ControlledDetector([]))) as client:

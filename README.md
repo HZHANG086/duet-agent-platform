@@ -49,6 +49,8 @@ Visitors can submit images to the public API without an account. The API allows 
 3. If the score is within 0.15 of 0.5 or expert votes differ by 0.80 or more, rescore a JPEG version at quality 65 and report any verdict change.
 4. Export the score, route and review reasons as JSON.
 
+Every completed inspection includes a run ID, checkpoint fingerprints, and an ordered trace with the inputs, outputs, status and wall time of each executed step. The policy trace records the score margin, vote spread, thresholds and reason for its next action. A failed recheck preserves the initial result and flags the case for human review. Uploaded image bytes are excluded from the trace. The public workflow replay renders the trace from the backend-generated sample reports. A local upload with `Run DUET` creates a new trace through the same code path.
+
 The follow-up thresholds are review heuristics. The public examples are three versions of the same photograph and illustrate the workflow. They do not establish model accuracy. Timing reflects the recorded CPU run or the configured live runtime.
 
 ## Reproduce the public samples

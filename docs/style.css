@@ -72,10 +72,14 @@ input[type="file"] { min-width: 0; max-width: 100%; font: 400 12px/1.4 var(--fon
 #notice[data-error] { color: var(--caution); }
 .replay { margin-bottom: 16px; }
 .replay button { margin: 0 5px 5px 0; }
-#replay-step { margin: 5px 0 7px; }
-#workflow-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 15px; padding-left: 20px; margin: 5px 0 0; color: var(--muted); font-size: 12px; }
-#workflow-steps .done { color: var(--ink); }
+#trace-position { margin-top: 6px; }
+#trace-position:empty { display: none; }
+#workflow-steps { display: grid; gap: 6px; padding-left: 20px; margin: 6px 0; color: var(--muted); font-size: 12px; }
 #workflow-steps [aria-current="step"] { color: var(--accent); font-weight: 700; }
+#workflow-steps [data-failed] { color: var(--caution); }
+#workflow-steps summary { cursor: pointer; overflow-wrap: anywhere; }
+#workflow-steps pre { margin: 4px 0; padding: 7px; background: var(--paper); color: var(--ink); font: 400 11px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+#run-details { margin: 0 0 8px; overflow-wrap: anywhere; }
 #local-report h3 { margin-bottom: 6px; }
 .model-route { margin-top: 0; }
 .scoreline { display: flex; justify-content: space-between; align-items: end; gap: 12px; }

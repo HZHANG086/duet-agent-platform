@@ -76,14 +76,10 @@
         <div class="replay" id="replay" hidden>
           <button type="button" id="replay-toggle">Replay workflow</button>
           <button type="button" class="primary" id="replay-next" hidden>Next step</button>
-          <p class="hint" id="replay-step" aria-live="polite"></p>
-          <ol id="workflow-steps" hidden>
-            <li>Prepare image</li>
-            <li>Choose route</li>
-            <li>Score image</li>
-            <li>Review result</li>
-          </ol>
+          <ol id="workflow-steps" hidden aria-label="Backend execution trace"></ol>
+          <p id="trace-position" class="hint" aria-live="polite"></p>
         </div>
+        <p id="run-details" class="hint mono" hidden></p>
         <div id="model-output">
           <dl class="facts model-route" id="route-facts">
             <div><dt>Routing</dt><dd id="route"></dd></div>
