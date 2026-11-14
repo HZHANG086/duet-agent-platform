@@ -66,6 +66,10 @@ button[aria-pressed="true"] { color: var(--accent); background: var(--accent-qui
 #upload label, #upload p { width: 100%; }
 #upload label { font-weight: 650; }
 input[type="file"] { min-width: 0; max-width: 100%; font: 400 12px/1.4 var(--font-sans); }
+#image-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; padding: 10px; border: 1px dashed var(--line); }
+#image-drop[data-dragging] { border-color: var(--accent); background: var(--accent-quiet); }
+#jpeg-preview-status { margin: 0 0 7px; }
+#jpeg-preview-status:empty { display: none; }
 .primary, .primary:enabled:hover { background: var(--accent); border-color: var(--accent); color: var(--surface); }
 .primary:enabled:hover { box-shadow: inset 0 0 0 1px var(--surface); }
 #notice { color: var(--muted); }

@@ -9,12 +9,16 @@ const upload = byId("upload");
 const submit = byId("submit");
 const fileInput = byId("file");
 const localReport = byId("local-report");
+const imageDrop = byId("image-drop");
+const jpegButton = byId("local-jpeg");
+const jpegStatus = byId("jpeg-preview-status");
 const downloadButton = byId("download");
 const replayNext = byId("replay-next");
 const replayToggle = byId("replay-toggle");
 const workflowSteps = byId("workflow-steps");
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_PIXELS = 20_000_000;
+const PREVIEW_MAX_EDGE = 2048;
 
 const reasonText = {
   near_decision_threshold: "The score is near the decision threshold.",
@@ -187,53 +191,77 @@ function displayBytes(bytes) {
 }
 
 function showLocalVariant(jpeg) {
-  if (!localImage) return;
+  if (!localImage || (jpeg && !localImage.jpeg)) return;
   setPreview(jpeg ? localImage.jpeg : localImage.file, jpeg ? "JPEG preview" : "Your original image");
   byId("local-original").setAttribute("aria-pressed", String(!jpeg));
   byId("local-jpeg").setAttribute("aria-pressed", String(jpeg));
 }
 
 byId("local-original").addEventListener("click", () => showLocalVariant(false));
-byId("local-jpeg").addEventListener("click", () => showLocalVariant(true));
+jpegButton.addEventListener("click", async () => {
+  const selected = localImage;
+  if (!selected) return;
+  if (!selected.jpeg) {
+    jpegButton.disabled = true;
+    jpegStatus.textContent = "Preparing JPEG preview…";
+    try {
+      const image = preview;
+      await image.decode();
+      if (localImage !== selected) return;
+      const scale = Math.min(1, PREVIEW_MAX_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      selected.jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.65));
+      if (!selected.jpeg) throw new Error("The JPEG preview could not be created.");
+      if (localImage !== selected) return;
+      byId("jpeg-bytes").textContent = displayBytes(selected.jpeg.size);
+      jpegStatus.textContent = scale < 1 ? `JPEG preview resized to ${canvas.width} × ${canvas.height} px.` : "";
+    } catch (error) {
+      if (localImage === selected) jpegStatus.textContent = error.message;
+      return;
+    } finally {
+      if (localImage === selected) jpegButton.disabled = false;
+    }
+  }
+  if (localImage === selected) showLocalVariant(true);
+});
 
-fileInput.addEventListener("change", async () => {
-  const revision = ++imageRevision;
-  const file = fileInput.files[0];
+async function prepareLocalImage(file) {
   if (!file || busy) return;
+  const revision = ++imageRevision;
+  localImage = undefined;
   showInputError("");
   submit.disabled = true;
+  jpegButton.disabled = true;
+  jpegStatus.textContent = "";
+  setNotice("Opening image…");
+  const url = URL.createObjectURL(file);
   try {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       throw new Error("Choose a JPEG, PNG or WebP image.");
     }
     if (file.size > MAX_BYTES) throw new Error("The image exceeds 8 MiB.");
-    const bitmap = await createImageBitmap(file).catch(() => {
+    const decoded = new Image();
+    decoded.src = url;
+    await decoded.decode().catch(() => {
       throw new Error("The image could not be decoded.");
     });
-    const {width, height} = bitmap;
-    const canvas = document.createElement("canvas");
-    try {
-      if (width * height > MAX_PIXELS) throw new Error("The image exceeds 20 megapixels.");
-      if (revision !== imageRevision) return;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(bitmap, 0, 0);
-    } finally {
-      bitmap.close();
-    }
-    const jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.65));
     if (revision !== imageRevision) return;
-    if (!jpeg) throw new Error("The JPEG preview could not be created.");
-    localImage = {file, jpeg};
+    const width = decoded.naturalWidth;
+    const height = decoded.naturalHeight;
+    if (width * height > MAX_PIXELS) throw new Error("The image exceeds 20 megapixels.");
+    localImage = {file};
     byId("mode").textContent = "Browser preview";
     byId("sample-name").textContent = file.name;
     byId("dimensions").textContent = `${width} × ${height} px`;
     byId("local-format").textContent = file.type.split("/")[1].toUpperCase();
     byId("local-bytes").textContent = displayBytes(file.size);
-    byId("jpeg-bytes").textContent = displayBytes(jpeg.size);
+    byId("jpeg-bytes").textContent = "Not generated";
     sampleButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
     activeReport = undefined;
     downloadButton.disabled = true;
@@ -241,6 +269,7 @@ fileInput.addEventListener("change", async () => {
     localReport.hidden = false;
     setNotice("");
     showLocalVariant(false);
+    jpegButton.disabled = false;
     submit.disabled = false;
   } catch (error) {
     if (revision !== imageRevision) return;
@@ -249,7 +278,38 @@ fileInput.addEventListener("change", async () => {
     showInputError(error.message);
     if (renderedReport.hidden && localReport.hidden) {
       setNotice("Choose a built-in sample or add a supported image.");
-    }
+    } else setNotice("");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  prepareLocalImage(file);
+});
+
+for (const eventName of ["dragover", "drop"]) {
+  document.addEventListener(eventName, (event) => {
+    if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+  });
+}
+imageDrop.addEventListener("dragover", (event) => {
+  if (event.dataTransfer.types.includes("Files")) imageDrop.setAttribute("data-dragging", "");
+});
+imageDrop.addEventListener("dragleave", (event) => {
+  if (!imageDrop.contains(event.relatedTarget)) imageDrop.removeAttribute("data-dragging");
+});
+imageDrop.addEventListener("drop", (event) => {
+  imageDrop.removeAttribute("data-dragging");
+  prepareLocalImage(event.dataTransfer.files[0]);
+});
+document.addEventListener("paste", (event) => {
+  const file = [...event.clipboardData.files].find((item) => item.type.startsWith("image/"));
+  if (file) {
+    event.preventDefault();
+    prepareLocalImage(file);
   }
 });
 
