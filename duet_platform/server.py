@@ -1,8 +1,10 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -10,10 +12,10 @@ from starlette.concurrency import run_in_threadpool
 from .agent import MAX_BYTES, InvalidImage, inspect_image
 from .detector import Detector
 
-DOCS = Path(__file__).resolve().parents[1] / "docs"
+DOCS = Path(os.environ.get("DUET_DOCS_PATH") or Path(__file__).resolve().parents[1] / "docs")
 
 
-def create_app(detector_factory=Detector):
+def create_app(detector_factory=Detector, *, allowed_origin=None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.detector = await run_in_threadpool(detector_factory)
@@ -55,6 +57,12 @@ def create_app(detector_factory=Detector):
                 raise HTTPException(422, str(exc)) from exc
 
     app.mount("/", StaticFiles(directory=DOCS, html=True), name="site")
+    if allowed_origin:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[allowed_origin],
+            allow_methods=["GET", "POST"],
+        )
     return app
 
 

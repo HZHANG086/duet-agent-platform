@@ -55,6 +55,27 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(invalid.status_code, 422)
         self.assertEqual(oversized.status_code, 413)
 
+    def test_pages_origin_can_read_live_reports(self):
+        origin = "https://hzhang086.github.io"
+        detector = ControlledDetector([(0.1, [0.05, 0.1, 0.12])])
+        with TestClient(create_app(lambda: detector, allowed_origin=origin)) as client:
+            response = client.post(
+                "/api/inspect",
+                headers={"Origin": origin},
+                files={"image": ("sample.png", sample(), "image/png")},
+            )
+            unrelated = client.get("/api/health", headers={"Origin": "https://example.org"})
+            oversized = client.post(
+                "/api/inspect",
+                headers={"Origin": origin, "Content-Length": str(MAX_BYTES * 2)},
+                content=b"",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], origin)
+        self.assertNotIn("Access-Control-Allow-Origin", unrelated.headers)
+        self.assertEqual(oversized.status_code, 413)
+        self.assertEqual(oversized.headers["Access-Control-Allow-Origin"], origin)
+
 
 if __name__ == "__main__":
     unittest.main()

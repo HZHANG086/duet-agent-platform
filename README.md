@@ -29,6 +29,17 @@ curl -F 'image=@sample.jpg' http://127.0.0.1:8000/api/inspect
 
 The local service accepts single-frame JPEG, PNG and WebP files up to 8 MiB and 20 megapixels. It loads the detector once and serializes inference. Original uploads are not written to the project or included in reports.
 
+## Deploy live inference
+
+`modal_app.py` serves the same FastAPI app on Modal CPU. It scales to zero and uses a read-only workspace volume for the upstream code and DUET v3 checkpoints. GitHub Pages uses the live API when `docs/backend-config.js` contains the verified HTTPS endpoint. Keeping that value empty preserves the recorded report demo.
+
+1. Confirm the team permits its code and checkpoints to be stored in the chosen workspace and used for public inference. Check the workspace's billing and spend limits.
+2. Install Modal locally and authenticate in your own workspace. Create a v2 volume named `duet-v3-inputs`.
+3. Populate `/upstream` in the volume from a clean archive of the pinned upstream commit and `/checkpoints` with the three v3 model files in the layout above. The deployment downloads the separately published DINOv2 backbone at a fixed revision. The public GitHub repository needs only the platform code and the backend URL.
+4. Run `modal deploy modal_app.py`. Verify `/api/health` and post a test image to `/api/inspect`. Then put the endpoint URL, with a trailing slash, in `docs/backend-config.js` and verify an upload from the public site.
+
+Visitors can submit images to the public API without an account. The API allows requests from the GitHub Pages origin and keeps one model container at a time. Direct API requests are still possible, so configure the hosting provider's spend limit before sharing the endpoint.
+
 ## Review logic
 
 1. Validate and decode the input and run the original DUET predictor.

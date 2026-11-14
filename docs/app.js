@@ -1,3 +1,5 @@
+import { publicBackend } from "./backend-config.js";
+
 const byId = (id) => document.getElementById(id);
 const sampleButtons = [...document.querySelectorAll("[data-sample]")];
 const renderedReport = byId("report");
@@ -16,6 +18,8 @@ let catalog;
 let activeReport;
 let objectUrl;
 let busy = false;
+const backend = new URL(publicBackend || "./", window.location.href);
+const endpoint = (path) => new URL(path, backend);
 
 function setPreview(source, alt) {
   if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -112,16 +116,29 @@ upload.addEventListener("submit", async (event) => {
   renderedReport.hidden = true;
   setNotice("Running DUET inspection…");
   try {
-    const response = await fetch("./api/inspect", {method: "POST", body: new FormData(upload)});
-    const body = await response.json();
-    if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "The upload could not be inspected.");
+    const response = await fetch(endpoint("api/inspect"), {
+      method: "POST",
+      body: new FormData(upload),
+      signal: AbortSignal.timeout(140000),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      const fallback = response.status === 429
+        ? "The detector is busy. Try again shortly."
+        : "The detector is temporarily unavailable. Try again shortly.";
+      throw new Error(typeof body?.detail === "string" ? body.detail : fallback);
+    }
+    if (!body?.primary) throw new Error("The detector returned an invalid report.");
     setPreview(file, "Uploaded image");
     byId("sample-name").textContent = file.name;
     byId("mode").textContent = "Live inference";
     sampleButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
     renderReport(body);
   } catch (error) {
-    setNotice(error.message || "Could not reach the DUET service.", true);
+    const message = error.name === "TimeoutError"
+      ? "The detector took too long to respond. Try again shortly."
+      : error.message;
+    setNotice(message || "Could not reach the DUET service.", true);
   } finally {
     submit.disabled = false;
     sampleButtons.forEach((button) => { button.disabled = !catalog; });
@@ -138,11 +155,10 @@ async function loadSamples() {
 }
 
 async function detectServer() {
-  // The same static files run on Pages and on the local FastAPI service.
-  const response = await fetch("./api/health", {signal: AbortSignal.timeout(3000)});
-  if (!response.ok) return;
-  const health = await response.json();
-  if (health.status !== "ready") return;
+  if (!publicBackend) {
+    const response = await fetch(endpoint("api/health"), {signal: AbortSignal.timeout(3000)});
+    if (!response.ok || (await response.json()).status !== "ready") return;
+  }
   upload.hidden = false;
   byId("host-note").hidden = true;
 }
