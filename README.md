@@ -8,6 +8,8 @@ The public site replays three reports generated with the original DUET model and
 
 You can also open `docs/index.html` directly in a browser to replay the samples and preview your own image. Keep the full `docs` folder together.
 
+The review assistant answers supported questions in English or Chinese about the active report: why review was triggered, whether JPEG changed the verdict, model routing, expert votes and thresholds. Evidence buttons jump to the backend trace. The assistant uses the report directly and does not call a language model. On a connected backend, upload a new image and ask “Run DUET on this image” or “Run a fresh JPEG recheck.” A fresh run performs the initial pass and one JPEG pass, even if the original score is far from the threshold. The record distinguishes an explicit recheck request from a policy trigger.
+
 ## Run your own inspection
 
 Use Python 3.12 or later and a checkout of [the original DUET project](https://github.com/kelvinchua1099-alt/DUET_v0) at commit `829ca4cb4e83d35d8be4d2ddafc5359524b4649a`. Access to the team repository and the [v3 checkpoints](https://huggingface.co/TechJam2026-Jamlai-Bench/squade-vitg) is managed by their owners. Follow the upstream installation instructions for the PyTorch build on your device.

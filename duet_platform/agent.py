@@ -38,7 +38,7 @@ def decode_image(payload):
         raise InvalidImage("The image could not be decoded.") from exc
 
 
-def inspect_image(detector, payload, filename):
+def inspect_image(detector, payload, filename, force_recheck=False):
     started = perf_counter()
     image = decode_image(payload)
     name = PurePosixPath(filename.replace("\\", "/")).name or "upload"
@@ -76,12 +76,13 @@ def inspect_image(detector, payload, filename):
         "minimum_disagreement": STRONG_DISAGREEMENT,
         "maximum_rechecks": 1,
     }, {
-        "next_action": "recheck_jpeg" if reasons else "complete",
+        "next_action": "recheck_jpeg" if reasons or force_recheck else "complete",
         "reasons": reasons.copy(),
+        "requested_recheck": force_recheck,
     })
 
     check = None
-    if reasons:
+    if reasons or force_recheck:
         started = perf_counter()
         inputs = {"image": "original", "jpeg_quality": JPEG_QUALITY}
         try:

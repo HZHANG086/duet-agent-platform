@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -39,7 +39,7 @@ def create_app(detector_factory=Detector, *, allowed_origin=None):
         return {"status": "ready", "model": request.app.state.detector.model_id}
 
     @app.post("/api/inspect")
-    async def inspect(request: Request, image: UploadFile = File()):
+    async def inspect(request: Request, image: UploadFile = File(), force_recheck: bool = Form(False)):
         lock = request.app.state.inference
         if lock.locked():
             raise HTTPException(429, "An inspection is running. Try again shortly.")
@@ -51,7 +51,7 @@ def create_app(detector_factory=Detector, *, allowed_origin=None):
         async with lock:
             try:
                 return await run_in_threadpool(
-                    inspect_image, request.app.state.detector, payload, image.filename or "upload"
+                    inspect_image, request.app.state.detector, payload, image.filename or "upload", force_recheck
                 )
             except InvalidImage as exc:
                 raise HTTPException(422, str(exc)) from exc

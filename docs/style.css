@@ -40,6 +40,7 @@ nav a:hover { text-decoration: underline; }
 .intro { padding: 44px 0 29px; }
 h1 { font-size: clamp(34px, 5.5vw, 59px); letter-spacing: -.067em; line-height: 1.04; font-weight: 650; margin-bottom: 10px; }
 .intro p { color: var(--muted); max-width: 62ch; }
+.ask-link { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 600; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border: 1px solid var(--line); background: var(--surface); }
 .source, .result { padding: 22px clamp(17px, 2.5vw, 30px); min-width: 0; }
 .result { border-left: 1px solid var(--line); }
@@ -109,6 +110,17 @@ meter::-webkit-meter-optimum-value { background: var(--accent); }
 .review[data-review] { border-color: var(--caution); background: var(--caution-bg); }
 .review p { font-size: 12px; margin-top: 4px; }
 .report-note { margin-top: 14px; }
+.assistant { margin-top: 18px; padding: 18px clamp(15px, 2.5vw, 30px); background: var(--surface); border: 1px solid var(--line); scroll-margin-top: 12px; }
+.assistant-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 12px; }
+.assistant-header .mode { white-space: normal; }
+.assistant-log { display: flex; flex-direction: column; gap: 8px; min-height: 84px; max-height: 330px; overflow: auto; padding: 10px; border: 1px solid var(--line); background: var(--paper); }
+.assistant-turn { max-width: min(89%, 78ch); padding: 8px 11px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; white-space: pre-line; }
+.assistant-turn[data-user] { align-self: end; border-color: transparent; background: var(--accent-quiet); }
+.assistant-turn button { margin: 6px 6px 0 0; font-size: 12px; white-space: normal; text-align: left; }
+.assistant-prompts { margin: 9px 0 12px; }
+#assistant-form label { font-size: 13px; font-weight: 600; }
+.assistant-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 3px; }
+.assistant-compose input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); background: var(--surface); font: inherit; }
 footer { padding: 15px 0 21px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px 16px; color: var(--muted); font-size: 12px; }
 footer a { white-space: nowrap; }
 

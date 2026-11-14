@@ -16,6 +16,9 @@ const downloadButton = byId("download");
 const replayNext = byId("replay-next");
 const replayToggle = byId("replay-toggle");
 const workflowSteps = byId("workflow-steps");
+const chatLog = byId("assistant-log");
+const chatInput = byId("assistant-input");
+const chatButtons = [...document.querySelectorAll("[data-question]")];
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_PIXELS = 20_000_000;
 const PREVIEW_MAX_EDGE = 2048;
@@ -42,6 +45,7 @@ let live = false;
 let replayStep = null;
 let imageRevision = 0;
 let localImage;
+let chatTopic;
 const localFile = window.location.protocol === "file:";
 const backend = new URL(publicBackend || "./", window.location.href);
 const endpoint = (path) => new URL(path, backend);
@@ -90,7 +94,7 @@ function renderReplay() {
   }));
 }
 
-function renderReport(report) {
+function renderReport(report, preserveChat = false) {
   activeReport = report;
   replayStep = null;
   localReport.hidden = true;
@@ -129,7 +133,9 @@ function renderReport(report) {
   byId("review-title").textContent = requiresReview ? "Human review suggested" : "Inspection completed";
   byId("reasons").textContent = requiresReview
     ? report.reasons.map((reason) => reasonText[reason]).join(" ")
-    : "The initial score and expert votes met the single-pass criteria.";
+    : report.recompression_check
+      ? "The requested JPEG pass did not change the verdict. No review flags were raised."
+      : "The initial score and expert votes met the single-pass criteria.";
   const check = report.recompression_check;
   byId("compare").hidden = !check;
   if (check) {
@@ -139,7 +145,126 @@ function renderReport(report) {
   renderReplay();
   renderedReport.hidden = false;
   setNotice("");
+  refreshChat(!preserveChat);
 }
+
+function chatTurn(message, user = false, steps = [], action = null) {
+  const entry = document.createElement("div");
+  entry.className = "assistant-turn";
+  entry.toggleAttribute("data-user", user);
+  const p = document.createElement("p");
+  p.textContent = message;
+  entry.append(p);
+  const report = activeReport;
+  for (const [type, label] of steps) {
+    const index = report?.trace?.findIndex((step) => step.tool === type) ?? -1;
+    if (index < 0) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label + " ↗";
+    button.dataset.evidence = "";
+    button.addEventListener("click", () => {
+      if (report !== activeReport || busy) return;
+      replayStep = index;
+      renderReplay();
+      const target = workflowSteps.children[index];
+      target.querySelector("summary").focus({preventScroll: true});
+      target.scrollIntoView({block: "center"});
+    });
+    entry.append(button);
+  }
+  if (action) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", action.run);
+    button.dataset.evidence = "";
+    entry.append(button);
+  }
+  chatLog.append(entry);
+  while (chatLog.children.length > 30) chatLog.firstElementChild.remove();
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function refreshChat(reset = false) {
+  const recorded = !!activeReport && !localImage;
+  const context = activeReport ? `${recorded ? "Recorded" : "Live"} · ${activeReport.run_id.slice(0, 8)}` : "No inspection yet";
+  byId("assistant-context").textContent = context;
+  byId("assistant-recheck").hidden = !live || !localImage || !activeReport;
+  byId("assistant-run").hidden = !live || !localImage || !!activeReport;
+  byId("assistant-send").disabled = busy;
+  chatInput.disabled = busy;
+  chatButtons.forEach((button) => { button.disabled = busy || (!activeReport && !button.id); });
+  if (!reset) return;
+  chatTopic = undefined;
+  chatInput.value = "";
+  chatLog.replaceChildren();
+  chatTurn(activeReport
+    ? `I can explain the inspection for ${byId("sample-name").textContent}, including why DUET suggested a review or what happened after JPEG compression.`
+    : live && localImage ? "This image is ready. Ask me to run DUET to create an inspection record."
+      : "This is a browser preview. Select a built-in sample to discuss its model results.");
+}
+
+async function askAssistant(question) {
+  question = question.trim();
+  if (!question || busy) return;
+  const zh = reviewAssistant.useChinese(question);
+  const say = (en, cn) => zh ? cn : en;
+  const topic = reviewAssistant.intent(question, chatTopic);
+  chatTurn(question, true);
+  if (topic === "run" || topic === "recheck") {
+    if (!live || !localImage) {
+      chatTurn(say(
+        "I can explain the recorded runs here. To run DUET on an uploaded image, open the local workbench and select an image.",
+        "这里可以解读已有记录。要对新图执行检测，请打开本地工作台并上传图片。"));
+      return;
+    }
+    const explicit = topic === "recheck";
+    chatTurn(explicit ? say("Running a fresh inspection with a JPEG check.", "正在重新初检，并执行一次 JPEG 复测。")
+      : say("Running DUET on the selected image.", "正在检测这张图。"));
+    const result = await runInspection({forceRecheck: explicit, preserveChat: true});
+    if (result.error) {
+      chatTurn(say(`No new report: ${result.error}`, `未生成新报告：${result.error}`));
+      return;
+    }
+    chatTopic = explicit ? "compare" : "score";
+    const answer = reviewAssistant.answer(result.report, chatTopic, zh);
+    chatTurn(say("New run: ", "新记录：") + result.report.run_id.slice(0, 8) + "\n" + answer.message,
+      false, evidenceLinks(answer.steps, zh));
+    return;
+  }
+  if (!activeReport) {
+    chatTurn(live && localImage ? say("Run DUET first to create a report.", "请先运行 DUET 生成检测记录。")
+      : say("Select a built-in sample to ask about its recorded inspection.", "请先选一个内置样例，再追问它的检测结果。"));
+    return;
+  }
+  if (topic === "export") {
+    const report = activeReport;
+    chatTurn(say("The JSON includes the scores, review reasons, and execution trace.",
+      "JSON 包含分数、复核原因和完整执行记录。"), false, [], {
+      label: say("Download JSON", "下载 JSON"),
+      run: () => { if (activeReport === report && !busy) downloadReport(report); },
+    });
+    return;
+  }
+  if (topic) chatTopic = topic;
+  const answer = reviewAssistant.answer(activeReport, topic, zh);
+  chatTurn(answer.message, false, evidenceLinks(answer.steps, zh));
+}
+
+function evidenceLinks(steps, zh) {
+  return steps.map((step) => [step, (zh ? reviewAssistant.stepZh : reviewAssistant.stepLabel)[step]]);
+}
+
+byId("assistant-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const question = chatInput.value;
+  chatInput.value = "";
+  void askAssistant(question);
+});
+chatButtons.forEach((button) => button.addEventListener("click", () => {
+  void askAssistant(button.dataset.question);
+}));
 
 function selectSample(index) {
   const sample = catalog.samples[index];
@@ -170,14 +295,16 @@ sampleButtons.forEach((button) => {
   button.addEventListener("click", () => selectSample(Number(button.dataset.sample)));
 });
 
-downloadButton.addEventListener("click", () => {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(activeReport, null, 2)], {type: "application/json"}));
+function downloadReport(report) {
+  if (!report) return;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], {type: "application/json"}));
   const download = document.createElement("a");
   download.href = url;
   download.download = "duet-inspection.json";
   download.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
+}
+downloadButton.addEventListener("click", () => downloadReport(activeReport));
 
 function showInputError(message) {
   const error = byId("input-error");
@@ -271,6 +398,7 @@ async function prepareLocalImage(file) {
     showLocalVariant(false);
     jpegButton.disabled = false;
     submit.disabled = false;
+    refreshChat(true);
   } catch (error) {
     if (revision !== imageRevision) return;
     fileInput.value = "";
@@ -313,18 +441,18 @@ document.addEventListener("paste", (event) => {
   }
 });
 
-upload.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function runInspection({forceRecheck = false, preserveChat = false} = {}) {
   const file = localImage?.file;
-  if (!live || !file || busy) return;
+  if (!live || !file || busy) return {error: "No image is ready for inspection."};
   busy = true;
+  refreshChat();
   submit.disabled = true;
   const bodyData = new FormData();
   bodyData.append("image", file, file.name);
+  if (forceRecheck) bodyData.append("force_recheck", "true");
   fileInput.disabled = true;
   downloadButton.disabled = true;
   sampleButtons.forEach((button) => { button.disabled = true; });
-  renderedReport.hidden = true;
   setNotice("Running DUET inspection…");
   try {
     const response = await fetch(endpoint("api/inspect"), {
@@ -344,18 +472,32 @@ upload.addEventListener("submit", async (event) => {
     byId("sample-name").textContent = file.name;
     byId("mode").textContent = "Live inference";
     sampleButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
-    renderReport(body);
+    if (preserveChat) {
+      for (const button of chatLog.querySelectorAll("[data-evidence]")) {
+        button.disabled = true;
+        button.title = "This link belongs to the previous run.";
+      }
+    }
+    renderReport(body, preserveChat);
+    return {report: body};
   } catch (error) {
     const message = error.name === "TimeoutError"
       ? "The detector took too long to respond. Try again shortly."
       : error.message;
     setNotice(message || "Could not reach the DUET service.", true);
+    if (activeReport) renderReplay();
+    return {error: message || "Could not reach the DUET service."};
   } finally {
     fileInput.disabled = false;
     submit.disabled = false;
     sampleButtons.forEach((button) => { button.disabled = !catalog; });
     busy = false;
+    refreshChat();
   }
+}
+upload.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void runInspection();
 });
 
 async function detectServer() {
@@ -370,8 +512,12 @@ async function detectServer() {
   byId("upload-note").textContent = "JPEG, PNG or WebP up to 8 MiB. The image is sent to DUET only when you select Run DUET.";
   byId("local-report").querySelector(".hint").textContent =
     "Switch between the original and a browser-generated JPEG preview, or select Run DUET to run the model on the original.";
+  refreshChat(!activeReport);
 }
 
 if (catalog) selectSample(0);
-else setNotice("Sample reports could not be loaded.", true);
+else {
+  setNotice("Sample reports could not be loaded.", true);
+  refreshChat(true);
+}
 detectServer().catch(() => {});

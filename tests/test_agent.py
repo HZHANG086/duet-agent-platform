@@ -61,6 +61,23 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(recheck["output"], report["recompression_check"])
         self.assertEqual(outcome["output"]["reasons"], report["reasons"])
 
+    def test_requested_recheck_runs_even_below_review_threshold(self):
+        detector = ControlledDetector([(0.1, [0.1, 0.1]), (0.2, [0.2, 0.2])])
+        with TestClient(create_app(lambda: detector)) as client:
+            response = client.post(
+                "/api/inspect",
+                data={"force_recheck": "true"},
+                files={"image": ("sample.png", sample(), "image/png")},
+            )
+        self.assertEqual(response.status_code, 200)
+        report = response.json()
+        self.assertEqual(report["status"], "complete")
+        self.assertEqual(report["reasons"], [])
+        self.assertEqual(report["recompression_check"]["score"], 0.2)
+        policy, recheck = report["trace"][2:4]
+        self.assertTrue(policy["output"]["requested_recheck"])
+        self.assertEqual(recheck["status"], "succeeded")
+
     def test_recheck_failure_preserves_primary_and_requests_review(self):
         detector = ControlledDetector([(0.49, [0.4, 0.5, 0.6]), RuntimeError("private details")])
         with TestClient(create_app(lambda: detector)) as client:

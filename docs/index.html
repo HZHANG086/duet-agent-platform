@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <script defer src="backend-config.js"></script>
   <script defer src="samples.js"></script>
+  <script defer src="assistant.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -24,6 +25,7 @@
   <section class="intro">
     <h1>Image inspection</h1>
     <p>Explore how DUET scores an image, which layers it used, and when a second pass flags it for review.</p>
+      <a class="ask-link" href="#assistant">Ask the review assistant ↓</a>
   </section>
   <section class="workspace" aria-label="Inspection workspace">
     <div class="source">
@@ -117,6 +119,30 @@
         <p class="hint report-note">Scores are uncalibrated. Use them as a signal for review, alongside other evidence about the image’s origin.</p>
       </div>
     </div>
+  </section>
+  <section id="assistant" class="assistant" aria-labelledby="assistant-title">
+    <div class="assistant-header">
+      <div>
+        <h2 id="assistant-title">Review assistant</h2>
+        <p class="hint" id="assistant-help">Ask about the selected run in English or 中文. Answers come from its inspection record.</p>
+      </div>
+      <span id="assistant-context" class="mode"></span>
+    </div>
+    <div id="assistant-log" class="assistant-log" role="log" aria-label="Review conversation" aria-live="polite" tabindex="0"></div>
+    <div class="controls assistant-prompts" role="group" aria-label="Suggested questions">
+      <button type="button" data-question="Why was it flagged for review?">Why review?</button>
+      <button type="button" data-question="Did JPEG compression change the verdict?">Compare JPEG</button>
+      <button type="button" data-question="Which layers did DUET use?">Show model route</button>
+      <button type="button" data-question="Run a fresh JPEG recheck" id="assistant-recheck" hidden>Run JPEG recheck</button>
+      <button type="button" data-question="Run DUET on this image" id="assistant-run" hidden>Run DUET</button>
+    </div>
+    <form id="assistant-form">
+      <label for="assistant-input">Ask about this image</label>
+      <div class="assistant-compose">
+        <input id="assistant-input" maxlength="350" placeholder="e.g. 哪几层专家分歧最大？" autocomplete="off" required>
+        <button id="assistant-send" class="primary" type="submit">Send</button>
+      </div>
+    </form>
   </section>
 </main>
 <footer class="shell"><span>DUET v3 · DINOv2 ViT-g/14</span><a href="https://devpost.com/software/freedepth">Original team project ↗</a></footer>
