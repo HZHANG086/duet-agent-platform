@@ -1,4 +1,4 @@
-import { publicBackend } from "./backend-config.js";
+"use strict";
 
 const byId = (id) => document.getElementById(id);
 const sampleButtons = [...document.querySelectorAll("[data-sample]")];
@@ -22,7 +22,7 @@ const reasonText = {
   verdict_changed_after_recompression: "The verdict changed after recompression.",
 };
 
-let catalog;
+const catalog = typeof duetSamples !== "undefined" ? duetSamples : null;
 let activeReport;
 let objectUrl;
 let busy = false;
@@ -30,6 +30,7 @@ let live = false;
 let replayStep = null;
 let imageRevision = 0;
 let localImage;
+const localFile = window.location.protocol === "file:";
 const backend = new URL(publicBackend || "./", window.location.href);
 const endpoint = (path) => new URL(path, backend);
 
@@ -149,7 +150,7 @@ replayNext.addEventListener("click", () => {
 });
 
 sampleButtons.forEach((button) => {
-  button.disabled = true;
+  button.disabled = !catalog;
   button.addEventListener("click", () => selectSample(Number(button.dataset.sample)));
 });
 
@@ -285,15 +286,8 @@ upload.addEventListener("submit", async (event) => {
   }
 });
 
-async function loadSamples() {
-  const response = await fetch("samples.json");
-  if (!response.ok) throw new Error("Sample reports are unavailable.");
-  catalog = await response.json();
-  sampleButtons.forEach((button) => { button.disabled = false; });
-  if (imageRevision === 0) selectSample(0);
-}
-
 async function detectServer() {
+  if (localFile) return;
   if (!publicBackend) {
     const response = await fetch(endpoint("api/health"), {signal: AbortSignal.timeout(3000)});
     if (!response.ok || (await response.json()).status !== "ready") return;
@@ -306,9 +300,6 @@ async function detectServer() {
     "Switch between the original and a browser-generated JPEG preview, or select Run DUET to run the model on the original.";
 }
 
-try {
-  await loadSamples();
-} catch {
-  setNotice("Sample reports could not be loaded.", true);
-}
+if (catalog) selectSample(0);
+else setNotice("Sample reports could not be loaded.", true);
 detectServer().catch(() => {});

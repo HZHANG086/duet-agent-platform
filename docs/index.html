@@ -6,7 +6,9 @@
   <meta name="description" content="Inspect DUET image detection scores, expert votes, and recompression checks.">
   <title>DUET Agent Platform</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module" src="app.js"></script>
+  <script defer src="backend-config.js"></script>
+  <script defer src="samples.js"></script>
+  <script defer src="app.js"></script>
 </head>
 <body>
 <header class="masthead">
@@ -37,9 +39,9 @@
         <span class="mono" id="dimensions">512 × 512 px</span>
       </div>
       <div class="controls" id="sample-controls" role="group" aria-label="Sample images">
-        <button type="button" data-sample="0" aria-pressed="true">Original</button>
-        <button type="button" data-sample="1" aria-pressed="false">Compressed</button>
-        <button type="button" data-sample="2" aria-pressed="false">Blurred</button>
+        <button type="button" data-sample="0" aria-pressed="true" disabled>Original</button>
+        <button type="button" data-sample="1" aria-pressed="false" disabled>Compressed</button>
+        <button type="button" data-sample="2" aria-pressed="false" disabled>Blurred</button>
       </div>
       <form id="upload">
         <label for="file">Add your own image</label>
@@ -56,6 +58,7 @@
         <button id="download" class="quiet" type="button" disabled>↓ JSON</button>
       </div>
       <p id="notice" role="status" aria-live="polite">Loading report…</p>
+      <noscript>Enable JavaScript to switch samples and preview your own image.</noscript>
       <section id="local-report" hidden>
         <h3>Image preparation preview</h3>
         <p class="hint">Switch between the original and a browser-generated JPEG at quality 65. DUET’s model is offline for uploads in this demo. Select a built-in sample to see a real detection run.</p>

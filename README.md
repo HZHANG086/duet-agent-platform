@@ -6,6 +6,8 @@ The platform wraps the original DUET v3 image detector with an image-review work
 
 The public site replays three reports generated with the original DUET model and v3 checkpoints, including both the early exit and deep route. You can add a JPEG, PNG or WebP to preview the original and a browser-generated JPEG. The image stays in the browser during this preview. To score a new upload, run the Python service with access to the upstream code and model checkpoints.
 
+You can also open `docs/index.html` directly in a browser to replay the samples and preview your own image. Keep the full `docs` folder together.
+
 ## Run your own inspection
 
 Use Python 3.12 or later and a checkout of [the original DUET project](https://github.com/kelvinchua1099-alt/DUET_v0) at commit `829ca4cb4e83d35d8be4d2ddafc5359524b4649a`. Access to the team repository and the [v3 checkpoints](https://huggingface.co/TechJam2026-Jamlai-Bench/squade-vitg) is managed by their owners. Follow the upstream installation instructions for the PyTorch build on your device.
